@@ -80,7 +80,7 @@ function Card({
       className="relative shadow-md hover:shadow-xl transition-shadow duration-300 flex items-center gap-1 w-full sm:w-[303px] h-[75px] border bg-white mr-1"
       style={{ backgroundColor: hasAdjustment ? '#1c2d40' : '#15202b' }}
     >
-      <div className="flex flex-col items-center justify-center w-12 h-full text-white text-sm font-bold rounded-sm z-10 ${animationClass}"
+      <div className={`flex flex-col items-center justify-center w-12 h-full text-white text-sm font-bold rounded-sm z-10 ${animationClass}`}
         style={{
           ...bgStyle,
           animationDuration: `${bgConfig?.speed || 8}s`
