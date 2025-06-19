@@ -19,13 +19,13 @@ const themePresets = {
 export default function BackgroundPanel({
   customBackgrounds,
   setCustomBackgrounds,
-  cardCount,
+  channels,
   userId,
   visible,
   toggleVisibility,
 }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [tempBg, setTempBg] = useState({ type: 'color', value: '#ffffff', animate: false, speed: 8 });
+  const [selectedId, setSelectedId] = useState(null);
+  const [tempBg, setTempBg] = useState({ type: 'color', value: '#ffffff', animate: false, speed: 8, direction: 'horizontal' });
   const [animateGradient, setAnimateGradient] = useState(false);
   const debounceTimeout = useRef(null);
 
@@ -42,28 +42,32 @@ export default function BackgroundPanel({
   }, [userId, setCustomBackgrounds]);
 
   useEffect(() => {
-    const current = customBackgrounds[currentIndex];
+    const current = customBackgrounds[selectedId];
     setTempBg({
       type: current?.type || 'color',
       value: current?.value || '#ffffff',
       animate: current?.animate || false,
       speed: current?.speed || 8,
+      direction: current?.direction || 'horizontal',
     });
     setAnimateGradient(current?.animate || false);
-  }, [currentIndex, customBackgrounds]);
+  }, [selectedId, customBackgrounds]);
 
   const applyBackground = () => {
+    if (!selectedId) return;
     const updated = {
       ...customBackgrounds,
-      [currentIndex]: {
+      [selectedId]: {
         type: tempBg.type,
         value: tempBg.value,
         animate: animateGradient,
         speed: tempBg.speed || 8,
+        direction: tempBg.direction || 'horizontal', // ✅ Add this
       },
     };
     setCustomBackgrounds(updated);
   };
+
 
   const saveToFirestore = useCallback(async (updated) => {
     if (!userId) return;
@@ -126,7 +130,7 @@ export default function BackgroundPanel({
         'linear-gradient(135deg, #a18cd1 0%, #fbc2eb 100%)',
         'linear-gradient(270deg, #30cfd0 0%, #330867 100%)',
       ];
-      return { type: 'gradient', value: gradients[Math.floor(Math.random() * gradients.length)], animate: true, speed: 8 };
+      return { type: 'gradient', value: gradients[Math.floor(Math.random() * gradients.length)], animate: true, speed: 8, direction: 'horizontal' };
     }
   };
 
@@ -139,14 +143,16 @@ export default function BackgroundPanel({
         <button onClick={toggleVisibility} className="text-sm text-gray-400 hover:text-white">✕ Close</button>
       </div>
 
-      <label className="block text-sm font-medium mb-1">Select Card:</label>
+      <label className="block text-sm font-medium mb-1">Select Channel:</label>
       <select
-        value={currentIndex}
-        onChange={(e) => setCurrentIndex(Number(e.target.value))}
+        value={selectedId || ''}
+        onChange={(e) => setSelectedId(e.target.value)}
         className="w-full p-1 mb-3 rounded border dark:bg-gray-700"
       >
-        {Array.from({ length: cardCount }).map((_, idx) => (
-          <option key={idx} value={idx}>Card #{idx + 1}</option>
+        {channels.map((ch, idx) => (
+          <option key={ch.channelId} value={ch.channelId}>
+            #{idx + 1} — {ch.title}
+          </option>
         ))}
       </select>
 
@@ -182,7 +188,7 @@ export default function BackgroundPanel({
             />
           </div>
           {animateGradient && (
-            <div className="mb-3">
+            <>
               <label className="text-sm font-medium block mb-1">Animation Speed (seconds)</label>
               <input
                 type="number"
@@ -191,25 +197,22 @@ export default function BackgroundPanel({
                 step="1"
                 value={tempBg.speed || 8}
                 onChange={(e) => setTempBg((prev) => ({ ...prev, speed: Number(e.target.value) }))}
-                className="w-full p-1 rounded border dark:bg-gray-700"
+                className="w-full p-1 rounded border dark:bg-gray-700 mb-3"
               />
-            </div>
-          )}
-          {animateGradient && (
-            <div className="mb-3">
+
               <label className="block text-sm font-medium mb-1">Gradient Direction:</label>
               <select
                 value={tempBg.direction || 'horizontal'}
                 onChange={(e) => setTempBg({ ...tempBg, direction: e.target.value })}
-                className="w-full p-1 rounded border dark:bg-gray-700"
+                className="w-full p-1 rounded border dark:bg-gray-700 mb-3"
               >
                 <option value="horizontal">Horizontal</option>
                 <option value="vertical">Vertical</option>
                 <option value="diagonal">Diagonal</option>
+                <option value="wave">Wavy Loop</option>
               </select>
-            </div>
+            </>
           )}
-
         </>
       )}
 
@@ -218,7 +221,7 @@ export default function BackgroundPanel({
         <button
           onClick={() => {
             const updated = { ...customBackgrounds };
-            delete updated[currentIndex];
+            delete updated[selectedId];
             setCustomBackgrounds(updated);
           }}
           className="px-3 py-1 bg-yellow-600 text-white rounded hover:bg-yellow-700 text-sm"

@@ -130,37 +130,76 @@
   animation-iteration-count: infinite;
 }
 
+/* === Enhanced Gradient Animations === */
+
+/* Horizontal Scroll */
 @keyframes animatedGradientX {
   0% { background-position: 0% 50%; }
   100% { background-position: 100% 50%; }
 }
+.animate-gradient-x {
+  background-size: 200% 200%;
+  animation: animatedGradientX linear infinite;
+  animation-duration: inherit;
+}
 
+/* Vertical Scroll */
 @keyframes animatedGradientY {
   0% { background-position: 50% 0%; }
   100% { background-position: 50% 100%; }
 }
+.animate-gradient-y {
+  background-size: 200% 200%;
+  animation: animatedGradientY linear infinite;
+  animation-duration: inherit;
+}
 
+/* Diagonal Scroll */
 @keyframes animatedGradientXY {
   0% { background-position: 0% 0%; }
   100% { background-position: 100% 100%; }
 }
-
-.animate-gradient-x {
-  background-size: 200% 200%;
-  animation: animatedGradientX linear infinite;
-}
-
-.animate-gradient-y {
-  background-size: 200% 200%;
-  animation: animatedGradientY linear infinite;
-}
-
 .animate-gradient-xy {
   background-size: 200% 200%;
   animation: animatedGradientXY linear infinite;
+  animation-duration: inherit;
 }
+
+/* Wavy Looping Gradient (Back and Forth) */
+@keyframes animatedGradientWave {
+  0%   { background-position: 0% 50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+.animate-gradient-wave {
+  background-size: 300% 300%;
+  animation: animatedGradientWave ease-in-out infinite;
+  animation-duration: inherit;
+}
+
 
 .odometer-live {
   text-shadow: 0 0 4px rgba(0, 255, 0, 0.7);
 }
 
+html.theme-neon,
+html.theme-retro {
+  transition: background-color 0.3s, color 0.3s;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--text);
+}
+
+/* Utility class for accents in your JSX */
+.accent {
+  color: var(--accent);
+}
+
+/* Optional card styling using vars */
+.card {
+  background-color: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--accent);
+}

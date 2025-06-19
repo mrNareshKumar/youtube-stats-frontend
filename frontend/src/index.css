@@ -1,3 +1,5 @@
+/* index.css */
+
 /* :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -77,4 +79,18 @@ html.dark {
 
 body {
   font-family: 'Inter', sans-serif;
+}
+
+html.theme-neon,
+:root.theme-neon {
+  --bg: #0f0f0f;
+  --text: #39ff14;
+  --accent: #00ffff;
+}
+
+html.theme-retro,
+:root.theme-retro {
+  --bg: #fdf6e3;
+  --text: #b58900;
+  --accent: #d33682;
 }

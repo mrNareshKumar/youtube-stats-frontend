@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Odometer from 'react-odometerjs';
 import 'odometer/themes/odometer-theme-default.css';
 
-export default function OdometerLiveCounter({ value, source = 'cached', onRefresh, fontSize = 24, showDot = true  }) {
+export default function OdometerLiveCounter({ value, source = 'cached', onRefresh, fontSize = 24, showDot = true, speed = 700 }) {
   const [odometerValue, setOdometerValue] = useState(value ?? 0);
   const [changeAmount, setChangeAmount] = useState(null);
   const [textColor, setTextColor] = useState('#989faf');
@@ -88,7 +88,7 @@ export default function OdometerLiveCounter({ value, source = 'cached', onRefres
             transition: 'color 0.7s ease',
           }}
         >
-          <Odometer value={odometerValue} format="(,ddd)" duration={700} />
+          <Odometer value={odometerValue} format="(,ddd)" duration={speed} />
         </span>
 
         {/* ✅ Conditionally render glow dot */}

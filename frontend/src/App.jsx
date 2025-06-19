@@ -1,24 +1,18 @@
 // src/App.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import "odometer/themes/odometer-theme-default.css";
 import { CardGrid } from "./components/CardGrid";
-import { SearchBar } from "./components/SearchBar";
-import { ToggleTheme } from "./components/ToggleTheme";
-import { CacheToggle } from "./components/CacheToggle";
-import ConfigPanel from "./components/ConfigPanel";
-import DebugPanel from "./components/DebugPanel";
-import BackgroundPanel from "./components/BackgroundPanel";
-import ComparePanel from "./components/ComparePanel";
 import CompareCard from "./components/CompareCard";
+import Sidebar from "./components/Sidebar";
 import { db } from "./firebase";
 import {
   collection,
   addDoc,
+  getDoc,
   deleteDoc,
-  setDoc,
-  doc,
   onSnapshot,
-  getDocs
+  doc
 } from "firebase/firestore";
 import { fetchChannelInfo } from "./utils/youtube";
 
@@ -29,18 +23,16 @@ export default function App() {
   const [comparePairs, setComparePairs] = useState([]);
   const [customBackgrounds, setCustomBackgrounds] = useState({});
   const [theme, setTheme] = useState(localStorage.getItem("theme") || "light");
-  const [showSidebar, setShowSidebar] = useState(
-    () => JSON.parse(localStorage.getItem("showSidebar") || "true")
-  );
-
+  const [showSidebar, setShowSidebar] = useState(false);
   const [viewMode, setViewMode] = useState("iframe");
   const [showDebugPanel, setShowDebugPanel] = useState(false);
   const [showBackgroundPanel, setShowBackgroundPanel] = useState(false);
-
+  const [showEmbedConfigPanel, setShowEmbedConfigPanel] = useState(false);
   const [liveCounts, setLiveCounts] = useState({});
   const [freshSources, setFreshSources] = useState({});
   const [lastFetch, setLastFetch] = useState(Date.now());
   const [fetchStats, setFetchStats] = useState({ live: 0, cached: 0 });
+  const [embedStyles, setEmbedStyles] = useState({});
 
   const defaultConfig = {
     pollInterval: 5000,
@@ -58,7 +50,6 @@ export default function App() {
     }
   });
 
-  // Load channels and comparePairs from Firestore
   useEffect(() => {
     const unsubscribeCards = onSnapshot(collection(db, "cards"), (snapshot) => {
       setChannels(snapshot.docs.map((doc) => ({ ...doc.data(), id: doc.id })));
@@ -79,7 +70,6 @@ export default function App() {
     };
   }, []);
 
-  // Load adjustments from localStorage
   useEffect(() => {
     const saved = localStorage.getItem("channelAdjustments");
     if (saved) {
@@ -91,7 +81,6 @@ export default function App() {
     }
   }, []);
 
-  // Save settings to localStorage
   useEffect(() => {
     localStorage.setItem("yt-config", JSON.stringify(config));
   }, [config]);
@@ -108,6 +97,10 @@ export default function App() {
     localStorage.setItem("comparePairs", JSON.stringify(comparePairs));
   }, [comparePairs]);
 
+  useEffect(() => {
+    document.body.style.overflow = showSidebar ? 'hidden' : 'auto';
+  }, [showSidebar]);
+
   const addChannel = async (channelData) => {
     if (channels.some((c) => c.channelId === channelData.channelId)) {
       alert("Channel already added!");
@@ -115,8 +108,6 @@ export default function App() {
     }
     try {
       await addDoc(collection(db, "cards"), channelData);
-      // ❌ REMOVE this manual setChannels to avoid duplicates:
-      // setChannels((prev) => [...prev, { ...channelData, id: docRef.id }]);
     } catch (err) {
       console.error("Error adding channel:", err);
     }
@@ -154,15 +145,13 @@ export default function App() {
     }));
   };
 
-  const getAdjustedSort = (channels, adjustments) => {
+  const adjustedSort = useMemo(() => {
     return [...channels].sort((a, b) => {
       const offsetA = adjustments[a.channelId] || 0;
       const offsetB = adjustments[b.channelId] || 0;
       return (b.subscriberCount || 0) + offsetB - ((a.subscriberCount || 0) + offsetA);
     });
-  };
-
-  const adjustedSort = getAdjustedSort(channels, adjustments);
+  }, [channels, adjustments]);
 
   const addComparePair = async (pair) => {
     const exists = comparePairs.some(
@@ -193,9 +182,27 @@ export default function App() {
     return ch ? { ...ch, count } : null;
   };
 
+  useEffect(() => {
+    const loadEmbedStyles = async () => {
+      try {
+        const ref = doc(db, "users", userId, "embedConfigs", "default");
+        const snap = await getDoc(ref);
+        if (snap.exists()) {
+          setEmbedStyles(snap.data());
+        } else {
+          console.log("No embed config found");
+        }
+      } catch (err) {
+        console.error("Failed to load embed styles:", err);
+      }
+    };
+
+    loadEmbedStyles();
+  }, []);
+
   return (
-    <div className="h-screen grid grid-cols-6 gap-0 p-4 bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white overflow-hidden">
-      <div className="col-span-6 lg:col-span-5 overflow-y-auto pr-2">
+    <div className="h-screen grid grid-cols-5 gap-0 p-4 bg-zinc-100 dark:bg-zinc-900 text-zinc-900 dark:text-white theme-neon overflow-hidden">
+      <div className="col-span-5 lg:col-span-5 overflow-y-auto pr-2">
         <div className="flex flex-wrap gap-0.5">
           {comparePairs.map((pair, idx) => {
             const left = getChannel(pair.leftId);
@@ -237,93 +244,51 @@ export default function App() {
           setLiveCounts={setLiveCounts}
           freshSources={freshSources}
           setFreshSources={setFreshSources}
+          embedStyles={embedStyles}
         />
       </div>
 
-      {/* Sidebar */}
-      <div className="hidden lg:flex flex-col col-span-1 gap-2 overflow-y-auto pl-2 h-auto">
-        <div className="flex flex-col gap-2 mb-3">
-          <button
-            onClick={() => setShowSidebar((v) => !v)}
-            className={`w-12 h-6 ml-5 flex items-center rounded-full p-1 transition duration-300 ${
-              showSidebar ? "bg-green-500" : "bg-white-400"
-            }`}
-          >
-            <div
-              className={`bg-white w-4 h-4 rounded-full shadow-md transform transition duration-300 ${
-                showSidebar ? "translate-x-6" : "translate-x-0"
-              }`}
-            />
-          </button>
-
-          {showSidebar && (
-            <div className="flex flex-col gap-2 bg-white dark:bg-zinc-800 px-2 py-2 rounded-xl shadow w-fit">
-              <SearchBar onAddChannel={addChannel} />
-              <label>Mode:</label>
-              <select
-                value={viewMode}
-                onChange={(e) => setViewMode(e.target.value)}
-                className="shadow rounded px-2 py-1 bg-white dark:bg-zinc-700"
-              >
-                <option value="iframe">Live Iframe</option>
-                <option value="api">API Count</option>
-              </select>
-              <CacheToggle
-                enabled={!config.bypassCache}
-                onToggle={() => setConfig({ ...config, bypassCache: !config.bypassCache })}
-              />
-              <ToggleTheme />
-              <ConfigPanel
-                {...config}
-                onChange={(key, value) => setConfig((prev) => ({ ...prev, [key]: value }))}
-                showBackgroundPanel={showBackgroundPanel}
-                onToggleBackgroundPanel={() => setShowBackgroundPanel((v) => !v)}
-              />
-              <button
-                onClick={() => setShowDebugPanel((v) => !v)}
-                className="text-sm px-3 py-1 bg-yellow-600 text-white rounded shadow"
-              >
-                🐞 Toggle Debug Panel
-              </button>
-              <button
-                onClick={() => setShowBackgroundPanel(true)}
-                className="text-sm px-3 py-1 bg-indigo-600 text-white rounded shadow"
-              >
-                🎨 Customize Backgrounds
-              </button>
-              <BackgroundPanel
-                visible={showBackgroundPanel}
-                toggleVisibility={() => setShowBackgroundPanel(false)}
-                customBackgrounds={customBackgrounds}
-                setCustomBackgrounds={setCustomBackgrounds}
-                cardCount={channels.length}
-                userId={userId}
-              />
-              <ComparePanel channels={channels} onAddPair={addComparePair} />
-              {Object.keys(adjustments).length > 0 && (
-                <button
-                  onClick={() => setAdjustments({})}
-                  className="text-sm px-3 py-1 bg-red-600 text-white rounded shadow"
-                >
-                  Reset Adjustments
-                </button>
-              )}
-              {showDebugPanel && (
-                <DebugPanel
-                  pollInterval={config.pollInterval}
-                  cacheTTL={config.cacheTTL}
-                  bypassCache={config.bypassCache}
-                  tickerSpeed={config.tickerSpeed}
-                  cacheEnabled={!config.bypassCache}
-                  theme={theme}
-                  lastFetch={lastFetch}
-                  fetchStats={fetchStats}
-                />
-              )}
-            </div>
-          )}
-        </div>
+      <div className="fixed top-4 right-4 z-50">
+        <button
+          onClick={() => setShowSidebar((prev) => !prev)}
+          className="bg-zinc-800 text-white rounded px-3 py-2 shadow hover:bg-zinc-700"
+          aria-label="Open sidebar"
+        >
+          ☰
+        </button>
       </div>
+
+      <AnimatePresence>
+      {showSidebar && (
+        <Sidebar
+          showSidebar={showSidebar}
+          setShowSidebar={setShowSidebar}
+          config={config}
+          setConfig={setConfig}
+          viewMode={viewMode}
+          setViewMode={setViewMode}
+          adjustments={adjustments}
+          setAdjustments={setAdjustments}
+          showDebugPanel={showDebugPanel}
+          setShowDebugPanel={setShowDebugPanel}
+          showBackgroundPanel={showBackgroundPanel}
+          setShowBackgroundPanel={setShowBackgroundPanel}
+          showEmbedConfigPanel={showEmbedConfigPanel}
+          setEmbedStyles={setEmbedStyles}
+          setShowEmbedConfigPanel={setShowEmbedConfigPanel}
+          addChannel={addChannel}
+          customBackgrounds={customBackgrounds}
+          setCustomBackgrounds={setCustomBackgrounds}
+          channels={channels}
+          addComparePair={addComparePair}
+          userId={userId}
+          theme={theme}
+          lastFetch={lastFetch}
+          fetchStats={fetchStats}
+        />
+      )}
+    </AnimatePresence>
+
     </div>
   );
 }

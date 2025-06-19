@@ -10,7 +10,7 @@ export default function CompareCard({ left, right, onRemove, showDot = true }) {
   const isRightLeading = difference < 0;
 
   return (
-    <div className="relative p-1 mb-1.5 ml-0.5 w-auto border bg-white dark:bg-gray-800 shadow-md">
+    <div className="relative p-1 mb-1.5 ml-1 w-auto h-[90px] border bg-white dark:bg-gray-800 shadow-md">
       <button
         onClick={onRemove}
         className="absolute top-2 right-2 text-transparent hover:text-transparent text-xs"
@@ -77,4 +77,3 @@ export default function CompareCard({ left, right, onRemove, showDot = true }) {
     </div>
   );
 }
-
